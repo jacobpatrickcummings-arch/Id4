@@ -21,11 +21,12 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android 35
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      # Ubuntu GitHub Actions runners already provide Android SDK command-line tools.
+      # Avoid android-actions/setup-android@v3, which can fail installing removed SDK package 'tools'.
+      - name: Install Android SDK packages
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -36,6 +37,7 @@ jobs:
         run: |
           mkdir -p bridge
           unzip -q bmw-native-aa-bridge-v0.1.1-source.zip -d bridge
+          test -f bridge/settings.gradle.kts
 
       - name: Run tests and build APK
         working-directory: bridge
@@ -49,4 +51,3 @@ jobs:
           name: BMW-AA-Bridge-APK
           path: bridge/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-  
