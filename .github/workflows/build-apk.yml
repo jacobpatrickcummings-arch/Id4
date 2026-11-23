@@ -45,6 +45,26 @@ jobs:
           unzip -q bmw-native-aa-bridge-v0.1.1-source.zip -d bridge
           test -f bridge/settings.gradle.kts
 
+      - name: Add missing BMW iDrive protocol dependency
+        shell: bash
+        run: |
+          python3 - <<'PYBUILD'
+          from pathlib import Path
+          f = Path('bridge/app/build.gradle.kts')
+          s = f.read_text()
+          # Align with the versions used by AAIdrive's main app.
+          s = s.replace('io.bimmergestalt:IDriveConnectKitAndroid:0.6',
+                        'io.bimmergestalt:IDriveConnectKitAndroid:0.7')
+          dependency = 'implementation("io.bimmergestalt.idriveconnectkit:idriveconnectkit:0.8")'
+          if dependency not in s:
+              marker = 'implementation("io.bimmergestalt:IDriveConnectKitAndroid:0.7")'
+              if marker not in s:
+                  raise SystemExit('Expected Android iDrive dependency missing; check source archive')
+              s = s.replace(marker, marker + '\n    ' + dependency)
+          f.write_text(s)
+          print('Added core iDrive protocol dependency')
+          PYBUILD
+
       - name: Run source tests and build APK
         working-directory: bridge
         run: |
