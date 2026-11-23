@@ -1,0 +1,53 @@
+name: Build BMW AA Bridge APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Unpack source ZIP
+        run: |
+          mkdir -p bridge
+          unzip -q bmw-native-aa-bridge-v0.1.1-source.zip -d bridge
+
+      - name: Run tests and build APK
+        working-directory: bridge
+        run: |
+          python3 -m unittest discover -s tests -v
+          gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BMW-AA-Bridge-APK
+          path: bridge/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+concurrency:
+  
